@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="南昌大学课程作品集徽标">
+  <defs>
+    <linearGradient id="ncuBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#123a7a"/>
+      <stop offset="1" stop-color="#0a1f45"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="160" cy="160" r="150" fill="url(#ncuBg)" stroke="#c9a227" stroke-width="6"/>
+  <circle cx="160" cy="160" r="128" fill="none" stroke="#c9a227" stroke-width="2" stroke-opacity="0.7"/>
+
+  <text x="160" y="96" text-anchor="middle" fill="#c9a227"
+        font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="34" font-weight="700"
+        letter-spacing="6">南昌大学</text>
+
+  <text x="160" y="150" text-anchor="middle" fill="#ffffff"
+        font-family="Georgia,'Times New Roman',serif" font-size="52" font-weight="700"
+        letter-spacing="2">NCU</text>
+
+  <line x1="70" y1="176" x2="250" y2="176" stroke="#c9a227" stroke-width="2" stroke-opacity="0.8"/>
+
+  <text x="160" y="206" text-anchor="middle" fill="#dbe6ff"
+        font-family="Georgia,'Times New Roman',serif" font-size="15" letter-spacing="3">NANCHANG UNIVERSITY</text>
+
+  <text x="160" y="250" text-anchor="middle" fill="#c9a227"
+        font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="20" font-weight="600"
+        letter-spacing="3">Python 程序设计实验</text>
+
+  <text x="160" y="280" text-anchor="middle" fill="#9fb3d9"
+        font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="14" letter-spacing="2">课程作品集 · Portfolio</text>
+</svg>

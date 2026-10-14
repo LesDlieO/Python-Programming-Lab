@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>神经网络原理 - 交互式动画讲解</title>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --panel: #141a2b;
+    --panel2: #1b2338;
+    --text: #e6ebf5;
+    --muted: #8b94a7;
+    --accent: #4f8cff;
+    --accent2: #22d3ee;
+    --accent3: #f472b6;
+    --good: #34d399;
+    --warn: #fbbf24;
+    --line: #2a3350;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent2); }
+
+  /* ---------- 顶部导航 ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+    background: rgba(11,15,26,.75);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  nav .logo { font-weight: 700; font-size: 18px; letter-spacing: .5px; }
+  nav .logo span { color: var(--accent); }
+  nav .links { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+  nav a.nav {
+    color: var(--muted); text-decoration: none; padding: 6px 12px;
+    border-radius: 8px; font-size: 14px; transition: .2s;
+  }
+  nav a.nav:hover { color: var(--text); background: var(--panel2); }
+
+  section { max-width: 1080px; margin: 0 auto; padding: 72px 24px; }
+  h2 {
+    font-size: 32px; margin-bottom: 8px; letter-spacing: .5px;
+  }
+  h2 .num {
+    color: var(--accent); font-weight: 800; margin-right: 12px;
+    font-family: ui-monospace, monospace;
+  }
+  .sub { color: var(--muted); margin-bottom: 36px; font-size: 17px; }
+
+  /* ---------- 卡片 ---------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card h3 { font-size: 20px; margin-bottom: 14px; color: var(--accent2); }
+  .card p { color: var(--muted); margin-bottom: 12px; }
+  .card p strong { color: var(--text); }
+
+  .grid { display: grid; gap: 24px; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 820px) { .grid.two { grid-template-columns: 1fr; } }
+
+  .kbd {
+    display: inline-block; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 0 8px; font-family: ui-monospace, monospace; font-size: 13px;
+  }
+
+  .formula {
+    background: var(--panel2); border-left: 3px solid var(--accent);
+    padding: 16px 20px; border-radius: 8px; margin: 16px 0;
+    font-family: ui-monospace, "Cascadia Code", monospace; font-size: 16px;
+    overflow-x: auto; white-space: pre;
+  }
+  .formula .hl { color: var(--accent2); }
+  .formula .hl2 { color: var(--accent3); }
+  .formula .hl3 { color: var(--warn); }
+
+  /* ---------- 神经元演示 ---------- */
+  .neuron-stage { display: flex; justify-content: center; padding: 20px 0; }
+  svg text { font-family: "Segoe UI", sans-serif; }
+
+  /* ---------- 激活函数 ---------- */
+  .af-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .af-btn {
+    background: var(--panel2); border: 1px solid var(--line); color: var(--text);
+    padding: 10px 18px; border-radius: 10px; cursor: pointer; font-size: 15px; transition: .18s;
+  }
+  .af-btn:hover { border-color: var(--accent); }
+  .af-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ---------- 训练演示 ---------- */
+  .train-stage { display: flex; justify-content: center; }
+  .train-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+  button.btn {
+    background: var(--accent); border: none; color: #fff; font-size: 15px;
+    padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: .18s; font-weight: 600;
+  }
+  button.btn:hover { filter: brightness(1.1); }
+  button.btn.ghost { background: var(--panel2); border: 1px solid var(--line); color: var(--text); }
+  .loss-box {
+    font-family: ui-monospace, monospace; font-size: 15px; color: var(--warn);
+    background: var(--panel2); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
+  }
+
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px;
+    background: rgba(79,140,255,.15); color: var(--accent2); margin-right: 6px;
+  }
+
+  footer { text-align: center; color: var(--muted); padding: 48px 24px; font-size: 14px; }
+
+  .callout {
+    background: rgba(244,114,182,.08); border: 1px solid rgba(244,114,182,.3);
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; color: var(--text);
+  }
+  .callout b { color: var(--accent3); }
+
+  .steps { counter-reset: step; list-style: none; }
+  .steps li { position: relative; padding-left: 44px; margin-bottom: 16px; color: var(--muted); }
+  .steps li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 2px; width: 30px; height: 30px;
+    background: var(--accent); color: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">神经<span>网络</span>原理</div>
+  <div class="links">
+    <a class="nav" href="#neuron">神经元</a>
+    <a class="nav" href="#structure">网络结构</a>
+    <a class="nav" href="#forward">前向传播</a>
+    <a class="nav" href="#activation">激活函数</a>
+    <a class="nav" href="#backprop">反向传播</a>
+    <a class="nav" href="#train">训练演示</a>
+  </div>
+</nav>
+
+<!-- ======================= 开头 ======================= -->
+<section>
+  <h2 style="font-size:44px; line-height:1.3;">神经网络，<br>一台会<span style="color:var(--accent2)">自己写规则</span>的机器</h2>
+  <p class="sub" style="max-width:720px;">
+    传统程序需要人类把规则一条条写清楚；神经网络则相反——你只给它<strong style="color:var(--text)">输入</strong>和<strong style="color:var(--text)">答案</strong>，
+    它自己从数据里“学”出规则。下面我们用动画一步步拆解它的原理。
+  </p>
+  <div class="card">
+    <h3>一句话概括</h3>
+    <p style="font-size:18px; color:var(--text);">
+      神经网络 = 一堆 <b style="color:var(--accent2)">神经元</b> 分层连接，
+      数据向前流动得到预测（<b style="color:var(--accent)">前向传播</b>），
+      把误差沿反方向传回去修正连接强度（<b style="color:var(--accent3)">反向传播</b>），
+      反复循环直到预测足够准。
+    </p>
+  </div>
+</section>
+
+<!-- ======================= 神经元 ======================= -->
+<section id="neuron">
+  <h2><span class="num">01</span>神经元：最小的计算单元</h2>
+  <p class="sub">神经元是神经网络的积木。它接收多个输入，加权求和，再通过一个非线性函数输出。</p>
+
+  <div class="grid two">
+    <div class="card">
+      <h3>生物到数学的类比</h3>
+      <p>生物神经元有<strong>树突</strong>接收信号、<strong>胞体</strong>处理信号、<strong>轴突</strong>输出信号。人工神经元照搬了这个结构：</p>
+      <ul class="steps" style="margin-top:12px;">
+        <li>输入 <span class="kbd">x₁, x₂, x₃ …</span> 相当于树突接收的信号。</li>
+        <li>每个输入乘上一个<strong>权重</strong> <span class="kbd">w</span>，表示这条连接的重要性。</li>
+        <li>全部加起来，再加一个<strong>偏置</strong> <span class="kbd">b</span>，相当于“触发的门槛”。</li>
+        <li>结果经过<strong>激活函数</strong>，得到输出。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>计算过程（动画）</h3>
+      <div class="neuron-stage">
+        <svg id="neuronSvg" width="420" height="320" viewBox="0 0 420 320"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="formula">输出 y = f( w₁·x₁ + w₂·x₂ + w₃·x₃ + b )
+                    = f( <span class="hl3">Σ</span> wᵢxᵢ + b )</div>
+</section>
+
+<!-- ======================= 网络结构 ======================= -->
+<section id="structure">
+  <h2><span class="num">02</span>网络结构：分层协作</h2>
+  <p class="sub">把神经元排成层：输入层 → 隐藏层 → 输出层。数据从左往右流动。</p>
+
+  <div class="card">
+    <div class="neuron-stage">
+      <svg id="netSvg" width="720" height="420" viewBox="0 0 720 420"></svg>
+    </div>
+    <p style="text-align:center; margin-top:12px;">
+      <span class="pill">输入层</span><span class="pill">隐藏层</span><span class="pill">输出层</span>
+      —— 隐藏层可以有 <strong style="color:var(--text)">很多层</strong>（这就是“深度”学习的由来）。
+    </p>
+  </div>
+
+  <div class="grid two">
+    <div class="card">
+      <h3>每一层在做什么</h3>
+      <p><strong>输入层</strong>：把原始数据（如一张图片的每个像素）转成数字。</p>
+      <p><strong>隐藏层</strong>：逐层抽取越来越抽象的特征。比如识别猫时，第一层看边缘、第二层看形状、第三层看“猫脸”的组合。</p>
+      <p><strong>输出层</strong>：给出最终答案，如“猫 / 狗”的概率。</p>
+    </div>
+    <div class="card">
+      <h3>为什么需要“深”</h3>
+      <p>单层网络能解决的模式很有限。叠加多层后，网络可以把简单特征组合成复杂概念——这正是它强大的原因。</p>
+      <p style="color:var(--accent3)">直觉：一层做“加减”，多层能做“整个数学”。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 前向传播 ======================= -->
+<section id="forward">
+  <h2><span class="num">03</span>前向传播：数据从左到右</h2>
+  <p class="sub">输入经过层层计算，最终得到预测值。看下面这个最小网络的数值流动。</p>
+
+  <div class="card">
+    <div class="neuron-stage">
+      <svg id="fwdSvg" width="720" height="300" viewBox="0 0 720 300"></svg>
+    </div>
+    <div class="train-controls">
+      <button class="btn" id="fwdRun">▶ 播放一次传播</button>
+      <button class="btn ghost" id="fwdReset">重置</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>用数字走一遍</h3>
+    <div class="formula">隐藏层 h₁ = f( 0.8×1 + 0.5×0.2 )  = f( 0.90 )  = <span class="hl">0.71</span>
+输出   ŷ = f( h₁·w + b )      → 与真实答案比较 → 得到误差</div>
+    <p>前向传播只是“按现在的参数算一遍”。如果预测错了怎么办？下一步，<strong>反向传播</strong>出场。</p>
+  </div>
+</section>
+
+<!-- ======================= 激活函数 ======================= -->
+<section id="activation">
+  <h2><span class="num">04</span>激活函数：给网络加“曲线”</h2>
+  <p class="sub">如果没有激活函数，无论多少层，整个网络都只是线性变换，能力有限。激活函数引入非线性。</p>
+
+  <div class="card">
+    <div class="af-buttons">
+      <button class="af-btn active" data-f="sigmoid">Sigmoid</button>
+      <button class="af-btn" data-f="tanh">Tanh</button>
+      <button class="af-btn" data-f="relu">ReLU</button>
+      <button class="af-btn" data-f="leaky">Leaky ReLU</button>
+    </div>
+    <div class="neuron-stage">
+      <svg id="afSvg" width="640" height="360" viewBox="0 0 640 360"></svg>
+    </div>
+    <p id="afDesc" style="text-align:center; margin-top:12px;"></p>
+  </div>
+</section>
+
+<!-- ======================= 反向传播 ======================= -->
+<section id="backprop">
+  <h2><span class="num">05</span>反向传播：让错误“倒流”回去修正</h2>
+  <p class="sub">核心思想：算出每个权重对最终误差的“贡献”，然后往能减少误差的方向微调它。</p>
+
+  <div class="grid two">
+    <div class="card">
+      <h3>四步循环</h3>
+      <ul class="steps">
+        <li><strong>前向传播</strong>：算出预测 ŷ。</li>
+        <li><strong>算损失</strong>：用损失函数衡量 ŷ 和真实值 y 差多远。</li>
+        <li><strong>反向传播</strong>：用链式法则（微积分）把误差逐层回传，求出每个权重的梯度。</li>
+        <li><strong>更新参数</strong>：沿梯度反方向移动一小步（学习率 η）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>梯度下降</h3>
+      <p>想象在山谷里蒙眼下山：每一步都朝“脚下最陡的下坡方向”迈一小步。梯度就是那个“最陡方向”。</p>
+      <div class="formula">w ← w − η · <span class="hl3">∂L/∂w</span></div>
+      <p><span class="kbd">η</span> 是学习率：太小→学得慢；太大→可能跨过头、来回震荡。</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>为什么叫“反向”？</b> 前向传播从左到右，反向传播则从输出层的误差开始，从右到左、一层层把误差的“责任”分摊给每个权重——所以是“反向”。
+  </div>
+</section>
+
+<!-- ======================= 训练演示 ======================= -->
+<section id="train">
+  <h2><span class="num">06</span>动手训练一个网络</h2>
+  <p class="sub">下方是一个真实的神经网络在浏览器里训练：学习把平面上的两类点分开。</p>
+
+  <div class="card">
+    <div class="train-stage">
+      <svg id="trainSvg" width="560" height="420" viewBox="0 0 560 420"></svg>
+    </div>
+    <div class="train-controls" style="justify-content:center;">
+      <button class="btn" id="trainToggle">▶ 开始训练</button>
+      <button class="btn ghost" id="trainStep">单步 100 次</button>
+      <button class="btn ghost" id="trainReset">重置</button>
+      <span class="loss-box" id="lossBox">损失: ——</span>
+    </div>
+    <p style="text-align:center; margin-top:14px; color:var(--muted); font-size:14px;">
+      背景色是网络学到的“决策区域”，圆圈与叉是训练数据。蓝色 = 类别 A，粉色 = 类别 B。
+    </p>
+  </div>
+</section>
+
+<footer>
+  交互式动画讲解 · 神经网络原理 · 数据在层间流动，误差反向修正
+</footer>
+
+<script>
+/* ============================================================
+   工具函数
+============================================================ */
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+function clear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+
+/* ============================================================
+   01 神经元动画
+============================================================ */
+(function neuron() {
+  const svg = document.getElementById("neuronSvg");
+  const cx = 300, cy = 160;
+  const inputs = [
+    { x: 80,  y: 70,  label: "x₁", v: 1.0, w: 0.8 },
+    { x: 80,  y: 160, label: "x₂", v: 0.2, w: 0.5 },
+    { x: 80,  y: 250, label: "x₃", v: -0.6, w: -1.0 },
+  ];
+
+  function build() {
+    clear(svg);
+    // 连接线
+    inputs.forEach((inp, i) => {
+      const line = el("line", { x1: inp.x + 30, y1: inp.y, x2: cx - 40, y2: cy, stroke: "#3a4668", "stroke-width": 2, class: "wire" });
+      svg.appendChild(line);
+      const mx = (inp.x + 30 + cx - 40) / 2, my = (inp.y + cy) / 2;
+      const wt = el("text", { x: mx - 20, y: my - 6, fill: "#fbbf24", "font-size": 13, class: "wlabel" });
+      wt.textContent = "w" + (i + 1) + "=" + inp.w;
+      svg.appendChild(wt);
+    });
+
+    // 输入节点
+    inputs.forEach(inp => {
+      const g = el("circle", { cx: inp.x, cy: inp.y, r: 22, fill: "#141a2b", stroke: "#4f8cff", "stroke-width": 2 });
+      svg.appendChild(g);
+      const t = el("text", { x: inp.x, y: inp.y + 5, fill: "#e6ebf5", "font-size": 15, "text-anchor": "middle" });
+      t.textContent = inp.label + "=" + inp.v;
+      svg.appendChild(t);
+    });
+
+    // 求和节点
+    const sum = el("circle", { cx: cx - 40, cy: cy, r: 26, fill: "#141a2b", stroke: "#22d3ee", "stroke-width": 2 });
+    svg.appendChild(sum);
+    const st = el("text", { x: cx - 40, y: cy + 5, fill: "#22d3ee", "font-size": 18, "text-anchor": "middle", "font-weight": "700" });
+    st.textContent = "Σ";
+    svg.appendChild(st);
+
+    // 箭头
+    const arrow = el("path", { d: "M " + (cx - 12) + " " + cy + " L " + (cx + 8) + " " + cy, stroke: "#22d3ee", "stroke-width": 3, "marker-end": "url(#ar)" });
+    svg.appendChild(arrow);
+
+    // 神经元（激活）
+    const body = el("circle", { cx: cx, cy: cy, r: 40, fill: "#141a2b", stroke: "#f472b6", "stroke-width": 3 });
+    svg.appendChild(body);
+    const bf = el("text", { x: cx, y: cy - 2, fill: "#f472b6", "font-size": 14, "text-anchor": "middle", "font-weight": "700" });
+    bf.textContent = "激活函数";
+    svg.appendChild(bf);
+    const bf2 = el("text", { x: cx, y: cy + 18, fill: "#8b94a7", "font-size": 12, "text-anchor": "middle" });
+    bf2.textContent = "f(z)";
+    svg.appendChild(bf2);
+
+    // 输出
+    const out = el("text", { x: cx + 60, y: cy + 5, fill: "#e6ebf5", "font-size": 16 });
+    out.textContent = "y";
+    svg.appendChild(out);
+
+    // 偏置
+    const btext = el("text", { x: cx - 40, y: cy + 50, fill: "#8b94a7", "font-size": 12, "text-anchor": "middle" });
+    btext.textContent = "+ b (偏置)";
+    svg.appendChild(btext);
+
+    // 动画
+    inputs.forEach((inp, i) => {
+      const dot = el("circle", { cx: inp.x + 30, cy: inp.y, r: 4, fill: "#22d3ee", class: "pulse" });
+      svg.appendChild(dot);
+      const anim = el("animateMotion", { dur: 1.6 + i * 0.3 + "s", repeatCount: "indefinite", path: `M ${inp.x + 30} ${inp.y} L ${cx - 40} ${cy}` });
+      dot.appendChild(anim);
+    });
+  }
+  build();
+
+  // 动态更新权重标签闪烁
+  setInterval(() => {
+    svg.querySelectorAll(".wlabel").forEach(t => {
+      t.setAttribute("fill", Math.random() > 0.5 ? "#fbbf24" : "#f472b6");
+    });
+  }, 900);
+})();
+
+/* ============================================================
+   02 网络结构动画
+============================================================ */
+(function network() {
+  const svg = document.getElementById("netSvg");
+  const layers = [
+    { x: 90,  n: 4, label: "输入层" },
+    { x: 300, n: 5, label: "隐藏层 1" },
+    { x: 470, n: 5, label: "隐藏层 2" },
+    { x: 640, n: 2, label: "输出层" },
+  ];
+  function pos(l, i) { return { x: l.x, y: 210 - (l.n - 1) * 36 + i * 72 }; }
+  function build() {
+    clear(svg);
+    // 连线
+    for (let l = 0; l < layers.length - 1; l++) {
+      const a = layers[l], b = layers[l + 1];
+      for (let i = 0; i < a.n; i++)
+        for (let j = 0; j < b.n; j++) {
+          const p1 = pos(a, i), p2 = pos(b, j);
+          svg.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, stroke: "#2a3350", "stroke-width": 1, "stroke-opacity": 0.7 }));
+        }
+    }
+    // 节点
+    layers.forEach(l => {
+      for (let i = 0; i < l.n; i++) {
+        const p = pos(l, i);
+        const color = l === layers[0] ? "#4f8cff" : l === layers[layers.length - 1] ? "#34d399" : "#22d3ee";
+        svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 15, fill: "#141a2b", stroke: color, "stroke-width": 2.5 }));
+      }
+      const t = el("text", { x: l.x, y: 400, fill: "#8b94a7", "font-size": 14, "text-anchor": "middle" });
+      t.textContent = l.label;
+      svg.appendChild(t);
+    });
+    // 流动粒子
+    const colors = ["#4f8cff", "#22d3ee", "#34d399"];
+    for (let l = 0; l < layers.length - 1; l++) {
+      for (let k = 0; k < 3; k++) {
+        const i = Math.floor(Math.random() * layers[l].n);
+        const j = Math.floor(Math.random() * layers[l + 1].n);
+        const p1 = pos(layers[l], i), p2 = pos(layers[l + 1], j);
+        const dot = el("circle", { r: 3.5, fill: colors[l] });
+        svg.appendChild(dot);
+        const anim = el("animateMotion", {
+          dur: (1.2 + Math.random()) + "s",
+          repeatCount: "indefinite",
+          path: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`,
+        });
+        dot.appendChild(anim);
+      }
+    }
+  }
+  build();
+})();
+
+/* ============================================================
+   03 前向传播数值演示
+============================================================ */
+(function forward() {
+  const svg = document.getElementById("fwdSvg");
+  let step = 0;
+  const total = 4;
+  function build() {
+    clear(svg);
+    const L0 = [{ y: 60, v: "1.0" }, { y: 240, v: "0.2" }];
+    const L1 = [{ y: 150, v: "" }];
+    const L2 = [{ y: 150, v: "" }];
+    // 连线
+    L0.forEach(a => {
+      svg.appendChild(el("line", { x1: 120, y1: a.y, x2: 340, y2: 150, stroke: "#2a3350", "stroke-width": 2 }));
+    });
+    svg.appendChild(el("line", { x1: 400, y1: 150, x2: 600, y2: 150, stroke: "#2a3350", "stroke-width": 2 }));
+    // 权重标签
+    svg.appendChild(el("text", { x: 210, y: 88, fill: "#fbbf24", "font-size": 13 })).textContent = "w₁=0.8";
+    svg.appendChild(el("text", { x: 210, y: 214, fill: "#fbbf24", "font-size": 13 })).textContent = "w₂=0.5";
+    svg.appendChild(el("text", { x: 470, y: 130, fill: "#fbbf24", "font-size": 13 })).textContent = "w=1.2";
+    // 节点
+    function node(x, y, v, color, label) {
+      svg.appendChild(el("circle", { cx: x, cy: y, r: 26, fill: "#141a2b", stroke: color, "stroke-width": 2.5 }));
+      svg.appendChild(el("text", { x, y: y + 4, fill: "#e6ebf5", "font-size": 13, "text-anchor": "middle" })).textContent = label;
+      if (v) svg.appendChild(el("text", { x, y: y + 24, fill: color, "font-size": 12, "text-anchor": "middle" })).textContent = v;
+    }
+    node(120, 60, "x₁=1.0", "#4f8cff", "");
+    node(120, 240, "x₂=0.2", "#4f8cff", "");
+
+    const hVal = step >= 2 ? "h=0.71" : (step >= 1 ? "z=0.90" : "");
+    node(370, 150, hVal, "#22d3ee", step >= 2 ? "f(z)" : "Σ");
+    const yVal = step >= 3 ? "ŷ=0.79" : "";
+    node(600, 150, yVal, "#34d399", "");
+
+    if (step >= 3) {
+      svg.appendChild(el("text", { x: 600, y: 60, fill: "#f472b6", "font-size": 14, "text-anchor": "middle" })).textContent = "真实值 y=1 → 误差";
+    }
+    // 流动粒子
+    if (step >= 1) {
+      L0.forEach(a => {
+        const d = el("circle", { r: 5, fill: "#22d3ee" });
+        svg.appendChild(d);
+        d.appendChild(el("animateMotion", { dur: "0.9s", begin: "0s", fill: "freeze", path: `M 120 ${a.y} L 370 150` }));
+      });
+    }
+    if (step >= 2) {
+      const d = el("circle", { r: 5, fill: "#f472b6" });
+      svg.appendChild(d);
+      d.appendChild(el("animateMotion", { dur: "0.9s", begin: "0s", fill: "freeze", path: `M 370 150 L 600 150` }));
+    }
+  }
+  build();
+  document.getElementById("fwdRun").onclick = () => {
+    step = 0; build();
+    const iv = setInterval(() => {
+      step++;
+      build();
+      if (step >= total) clearInterval(iv);
+    }, 1100);
+  };
+  document.getElementById("fwdReset").onclick = () => { step = 0; build(); };
+})();
+
+/* ============================================================
+   04 激活函数
+============================================================ */
+(function activation() {
+  const svg = document.getElementById("afSvg");
+  const descEl = document.getElementById("afDesc");
+  const funcs = {
+    sigmoid: { f: x => 1 / (1 + Math.exp(-x)), name: "Sigmoid", desc: "把输出压到 (0,1)，适合做概率。缺点是两端梯度趋于 0（梯度消失）。" },
+    tanh:    { f: x => Math.tanh(x), name: "Tanh", desc: "输出范围 (-1,1)，以 0 为中心，比 Sigmoid 更常用，但仍会梯度消失。" },
+    relu:    { f: x => Math.max(0, x), name: "ReLU", desc: "大于 0 直接输出、小于 0 归零。计算快、缓解梯度消失，是隐藏层最常用选择。" },
+    leaky:   { f: x => x > 0 ? x : 0.1 * x, name: "Leaky ReLU", desc: "ReLU 的改进：负数端保留微小斜率，避免神经元“死掉”。" },
+  };
+  let current = "sigmoid";
+  const W = 640, H = 360, pad = 46;
+  const x0 = -5, x1 = 5, y0 = -1.3, y1 = 1.5;
+  function X(x) { return pad + (x - x0) / (x1 - x0) * (W - 2 * pad); }
+  function Y(y) { return H - pad - (y - y0) / (y1 - y0) * (H - 2 * pad); }
+  function draw() {
+    clear(svg);
+    const fn = funcs[current];
+    // 网格
+    for (let i = x0; i <= x1; i += 1) {
+      svg.appendChild(el("line", { x1: X(i), y1: pad, x2: X(i), y2: H - pad, stroke: "#222b44", "stroke-width": 1 }));
+      svg.appendChild(el("text", { x: X(i), y: H - pad + 18, fill: "#55607a", "font-size": 11, "text-anchor": "middle" })).textContent = i;
+    }
+    for (let i = y0; i <= y1; i += 0.5) {
+      svg.appendChild(el("line", { x1: pad, y1: Y(i), x2: W - pad, y2: Y(i), stroke: "#222b44", "stroke-width": 1 }));
+      svg.appendChild(el("text", { x: pad - 10, y: Y(i) + 4, fill: "#55607a", "font-size": 11, "text-anchor": "end" })).textContent = i.toFixed(1);
+    }
+    // 坐标轴
+    svg.appendChild(el("line", { x1: pad, y1: Y(0), x2: W - pad, y2: Y(0), stroke: "#55607a", "stroke-width": 1.5 }));
+    svg.appendChild(el("line", { x1: X(0), y1: pad, x2: X(0), y2: H - pad, stroke: "#55607a", "stroke-width": 1.5 }));
+    // 曲线
+    let d = "";
+    for (let px = 0; px <= 1; px += 1 / 600) {
+      const x = x0 + px * (x1 - x0);
+      const y = fn.f(x);
+      d += (px === 0 ? "M" : "L") + X(x).toFixed(1) + " " + Y(y).toFixed(1) + " ";
+    }
+    svg.appendChild(el("path", { d, fill: "none", stroke: "#4f8cff", "stroke-width": 3 }));
+    // 移动点
+    const dot = el("circle", { r: 6, fill: "#f472b6" });
+    svg.appendChild(dot);
+    const anim = el("animateMotion", {
+      dur: "4s", repeatCount: "indefinite",
+      path: `M ${X(x0)} ${Y(fn.f(x0))} ` + Array.from({ length: 100 }, (_, k) => {
+        const x = x0 + (k / 99) * (x1 - x0);
+        return `L ${X(x)} ${Y(fn.f(x))}`;
+      }).join(" ") + ` L ${X(x0)} ${Y(fn.f(x0))}`,
+    });
+    dot.appendChild(anim);
+    descEl.textContent = fn.desc;
+  }
+  document.querySelectorAll(".af-btn").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll(".af-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      current = btn.dataset.f;
+      draw();
+    };
+  });
+  draw();
+})();
+
+/* ============================================================
+   06 训练演示：一个真实的 MLP
+============================================================ */
+(function training() {
+  const svg = document.getElementById("trainSvg");
+  const lossBox = document.getElementById("lossBox");
+  const W = 560, H = 420;
+
+  // 生成螺旋状数据（经典二分类问题，线性不可分）
+  const N = 60, K = 2;
+  const data = [];
+  for (let k = 0; k < K; k++) {
+    for (let i = 0; i < N; i++) {
+      const r = i / N;
+      const t = k * Math.PI + r * Math.PI * 1.6 + Math.random() * 0.4;
+      data.push({ x: r * Math.cos(t) * 0.8, y: r * Math.sin(t) * 0.8, cls: k });
+    }
+  }
+  // 归一化到画布坐标
+  function toXY(d) { return { x: (d.x + 1) / 2 * (W - 80) + 40, y: (d.y + 1) / 2 * (H - 80) + 40 }; }
+
+  // 网络: 2 -> 16 -> 16 -> 2
+  let net = createNet([2, 16, 16, 2]);
+  function createNet(sizes) {
+    const layers = [];
+    for (let i = 0; i < sizes.length - 1; i++) {
+      layers.push({
+        w: Array.from({ length: sizes[i + 1] }, () =>
+          Array.from({ length: sizes[i] }, () => rand(-1, 1))),
+        b: Array.from({ length: sizes[i + 1] }, () => 0),
+      });
+    }
+    return layers;
+  }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function forward(inp) {
+    let a = inp.slice();
+    const acts = [a];
+    for (const l of net) {
+      const z = [];
+      for (let j = 0; j < l.w.length; j++) {
+        let s = l.b[j];
+        for (let i = 0; i < a.length; i++) s += l.w[j][i] * a[i];
+        z.push(s);
+      }
+      a = z.map(Math.tanh);
+      acts.push(a);
+    }
+    return acts;
+  }
+  function softmax(a) { const e = a.map(x => Math.exp(x - Math.max(...a))); const s = e.reduce((x, y) => x + y, 0); return e.map(x => x / s); }
+  function lossFor(a, cls) { const p = softmax(a); return -Math.log(p[cls] + 1e-9); }
+
+  function trainStep2(inp, cls, lr) {
+    const acts = forward(inp);
+    const out = acts[acts.length - 1];
+    const p = softmax(out);
+    let d = p.slice(); d[cls] -= 1;
+    for (let i = net.length - 1; i >= 0; i--) {
+      const l = net[i];
+      const aPrev = acts[i];              // 该层输入（前一层的激活）
+      const z = l.w.map((row, j) => row.reduce((s, w, k) => s + w * aPrev[k], 0) + l.b[j]);
+      const aCur = acts[i + 1];           // 该层输出（激活后）
+      const dz = d.map((g, j) => g * (1 - aCur[j] * aCur[j])); // tanh'
+      const dPrev = new Array(aPrev.length).fill(0);
+      for (let j = 0; j < l.w.length; j++) {
+        for (let k = 0; k < aPrev.length; k++) {
+          dPrev[k] += dz[j] * l.w[j][k];
+          l.w[j][k] -= lr * dz[j] * aPrev[k];
+        }
+        l.b[j] -= lr * dz[j];
+      }
+      d = dPrev;
+    }
+  }
+
+  let running = false, timer = null, lossVal = 0;
+  function evaluate() {
+    let L = 0;
+    for (const d of data) {
+      const acts = forward([d.x, d.y]);
+      L += lossFor(acts[acts.length - 1], d.cls);
+    }
+    return L / data.length;
+  }
+  function draw() {
+    clear(svg);
+    // 决策区域
+    const res = 20;
+    for (let ix = 0; ix < res; ix++) {
+      for (let iy = 0; iy < res; iy++) {
+        const px = (ix + 0.5) / res * 2 - 1;
+        const py = (iy + 0.5) / res * 2 - 1;
+        const acts = forward([px, py]);
+        const p = softmax(acts[acts.length - 1]);
+        const c = p[0];
+        const x = toXY({ x: px, y: py }).x, y = toXY({ x: px, y: py }).y;
+        const cell = W / res;
+        const r = Math.round(20 + c * 55);
+        const b = Math.round(20 + (1 - c) * 55);
+        svg.appendChild(el("rect", { x: x - cell / 2, y: y - cell / 2, width: cell, height: cell, fill: `rgb(${r},50,${b})`, "fill-opacity": 0.5 }));
+      }
+    }
+    // 数据点
+    for (const d of data) {
+      const p = toXY(d);
+      const color = d.cls === 0 ? "#4f8cff" : "#f472b6";
+      if (d.cls === 0) {
+        svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 5, fill: color, stroke: "#0b0f1a", "stroke-width": 1.5 }));
+      } else {
+        svg.appendChild(el("line", { x1: p.x - 4, y1: p.y - 4, x2: p.x + 4, y2: p.y + 4, stroke: color, "stroke-width": 2.5 }));
+        svg.appendChild(el("line", { x1: p.x - 4, y1: p.y + 4, x2: p.x + 4, y2: p.y - 4, stroke: color, "stroke-width": 2.5 }));
+      }
+    }
+    lossBox.textContent = "损失: " + lossVal.toFixed(4);
+  }
+
+  function runBatch(n) {
+    for (let i = 0; i < n; i++) {
+      const d = data[Math.floor(Math.random() * data.length)];
+      trainStep2([d.x, d.y], d.cls, 0.15);
+    }
+    lossVal = evaluate();
+    draw();
+  }
+
+  document.getElementById("trainToggle").onclick = () => {
+    const btn = document.getElementById("trainToggle");
+    if (running) {
+      running = false; clearInterval(timer);
+      btn.textContent = "▶ 开始训练";
+    } else {
+      running = true;
+      btn.textContent = "⏸ 暂停";
+      timer = setInterval(() => runBatch(50), 80);
+    }
+  };
+  document.getElementById("trainStep").onclick = () => runBatch(100);
+  document.getElementById("trainReset").onclick = () => {
+    if (running) { running = false; clearInterval(timer); document.getElementById("trainToggle").textContent = "▶ 开始训练"; }
+    net = createNet([2, 16, 16, 2]);
+    lossVal = evaluate(); draw();
+  };
+
+  lossVal = evaluate();
+  draw();
+})();
+</script>
+</body>
+</html>
