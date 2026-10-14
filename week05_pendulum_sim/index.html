@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单摆仿真 · 第05周 | 臧梓贺 5715126035</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: #1a1a24;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  }
+  #stageWrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+  }
+  #stage {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #panel {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 18px 28px;
+    padding: 14px 26px 18px;
+    background: linear-gradient(180deg, #1e1e2b 0%, #17171f 100%);
+    border-top: 1px solid rgba(130,200,255,0.12);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
+  }
+  .ctrl {
+    flex: 1 1 200px;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .ctrl .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    color: #8c9bb9;
+  }
+  .ctrl .row b {
+    color: #cfe6ff;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #2c3446;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #dff4ff, #5aaef2);
+    box-shadow: 0 0 10px rgba(110,200,255,0.8);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #dff4ff, #5aaef2);
+    box-shadow: 0 0 10px rgba(110,200,255,0.8);
+  }
+  .capsules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .capsule {
+    flex: 1 1 0;
+    min-width: 48px;
+    padding: 7px 2px;
+    border-radius: 999px;
+    border: 1px solid rgba(130,200,255,0.25);
+    background: rgba(44,52,70,0.6);
+    color: #9fb3d4;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .capsule::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: 1px;
+    background: var(--dot, #7cc9ff);
+    box-shadow: 0 0 8px var(--dot, #7cc9ff);
+  }
+  .capsule[data-preset="earth"] { --dot: #4dabf7; }
+  .capsule[data-preset="moon"] { --dot: #b8c2d8; }
+  .capsule[data-preset="jupiter"] { --dot: #f0a35e; }
+  .capsule[data-preset="space"] { --dot: #9b7bff; }
+  .capsule.active {
+    border-color: rgba(130,200,255,0.8);
+    background: linear-gradient(180deg, rgba(60,110,190,0.45), rgba(40,70,130,0.45));
+    color: #e6f2ff;
+    box-shadow: 0 0 14px rgba(110,200,255,0.4);
+  }
+  #resetBtn {
+    margin-left: auto;
+    padding: 10px 22px;
+    border-radius: 10px;
+    border: 1px solid rgba(130,200,255,0.45);
+    background: linear-gradient(180deg, rgba(60,110,190,0.35), rgba(40,70,130,0.35));
+    color: #cfe6ff;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.05s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #resetBtn:hover {
+    box-shadow: 0 0 16px rgba(110,200,255,0.45);
+  }
+  #resetBtn:active {
+    transform: translateY(1px);
+  }
+  @media (max-width: 720px) {
+    #panel {
+      padding: 12px 14px 14px;
+      gap: 14px 16px;
+    }
+    .ctrl {
+      flex: 1 1 100%;
+      max-width: none;
+    }
+    #resetBtn {
+      margin-left: 0;
+      width: 100%;
+    }
+    .capsule {
+      flex: 1 1 40%;
+    }
+  }
+  @media (pointer: coarse) {
+    input[type="range"] {
+      height: 6px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      width: 24px;
+      height: 24px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+    }
+    .capsule {
+      padding: 12px 6px;
+      font-size: 14px;
+    }
+    #resetBtn {
+      padding: 12px 22px;
+    }
+  }
+  @supports (height: 100dvh) {
+    html, body {
+      height: 100dvh;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stageWrap"><canvas id="stage"></canvas></div>
+<div id="panel">
+  <div class="ctrl">
+    <div class="row"><span>天体场景</span><b id="presetHint">地球</b></div>
+    <div class="capsules" id="presetBar">
+      <button class="capsule" type="button" data-preset="earth">地球</button>
+      <button class="capsule" type="button" data-preset="moon">月球</button>
+      <button class="capsule" type="button" data-preset="jupiter">木星</button>
+      <button class="capsule" type="button" data-preset="space">太空</button>
+    </div>
+  </div>
+  <div class="ctrl">
+    <div class="row"><span>摆长 L</span><b id="lenVal">200 px</b></div>
+    <input id="lenRange" type="range" min="100" max="350" step="1" value="200">
+  </div>
+  <div class="ctrl">
+    <div class="row"><span>重力 g</span><b id="gravVal">9.8 m/s²</b></div>
+    <input id="gravRange" type="range" min="1" max="25" step="0.1" value="9.8">
+  </div>
+  <div class="ctrl">
+    <div class="row"><span>阻尼 β</span><b id="dampVal">0.000</b></div>
+    <input id="dampRange" type="range" min="0" max="0.01" step="0.001" value="0">
+  </div>
+  <button id="resetBtn" type="button">重置摆动</button>
+</div>
+<script>
+(() => {
+  "use strict";
+
+  const BG = "#1a1a24";
+  const PX_PER_M = 100;
+  const THETA0 = (45 * Math.PI) / 180;
+  const DAMPING_SCALE = 20;
+  const MAX_L = 350;
+  const PRESETS = {
+    earth: { G: 9.8 },
+    moon: { G: 1.6 },
+    jupiter: { G: 24.8 },
+    space: { G: 1.0 }
+  };
+  const PRESET_NAMES = { earth: "地球", moon: "月球", jupiter: "木星", space: "太空" };
+  const STORAGE_KEY = "pendulum-sim-params-v1";
+
+  let L = 200;
+  let G = 9.8;
+  let damping = 0;
+  let gTween = null;
+
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+
+  const lenRange = document.getElementById("lenRange");
+  const gravRange = document.getElementById("gravRange");
+  const dampRange = document.getElementById("dampRange");
+  const lenVal = document.getElementById("lenVal");
+  const gravVal = document.getElementById("gravVal");
+  const dampVal = document.getElementById("dampVal");
+  const resetBtn = document.getElementById("resetBtn");
+  const presetBar = document.getElementById("presetBar");
+  const presetHint = document.getElementById("presetHint");
+  const presetButtons = Array.from(document.querySelectorAll(".capsule"));
+
+  let W = 0;
+  let H = 0;
+  let cx = 0;
+  let cy = 0;
+
+  let theta = THETA0;
+  let omega = 0;
+  let last = 0;
+
+  const trail = [];
+  const TRAIL_MAX = 80;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = canvas.clientWidth;
+    H = canvas.clientHeight;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = W / 2;
+    cy = Math.max(70, Math.min(H * 0.3, H - MAX_L - 60));
+    trail.length = 0;
+  }
+
+  function physics(dt) {
+    const steps = 8;
+    const h = dt / steps;
+    const omega0sq = (G * PX_PER_M) / L;
+    const b = damping * DAMPING_SCALE;
+    for (let i = 0; i < steps; i++) {
+      const acc = -omega0sq * Math.sin(theta) - b * omega;
+      omega += acc * h;
+      theta += omega * h;
+    }
+  }
+
+  function loop(now) {
+    if (!last) last = now;
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05;
+
+    updateGTween(dt);
+    physics(dt);
+
+    const bx = cx + L * Math.sin(theta);
+    const by = cy + L * Math.cos(theta);
+
+    trail.push({ x: bx, y: by });
+    if (trail.length > TRAIL_MAX) trail.shift();
+
+    draw(bx, by);
+    requestAnimationFrame(loop);
+  }
+
+  function draw(bx, by) {
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+
+    ctx.setLineDash([5, 7]);
+    ctx.strokeStyle = "rgba(140,160,200,0.18)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy + L + 30);
+    ctx.stroke();
+
+    const rodAngle = Math.PI / 2 - theta;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 64, Math.min(rodAngle, Math.PI / 2), Math.max(rodAngle, Math.PI / 2));
+    ctx.strokeStyle = "rgba(120,200,255,0.35)";
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 1; i < trail.length; i++) {
+      const p = trail[i - 1];
+      const q = trail[i];
+      const k = i / trail.length;
+      ctx.strokeStyle = "rgba(90,190,255," + (0.28 * k).toFixed(3) + ")";
+      ctx.lineWidth = 2 + 4 * k;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(q.x, q.y);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+
+    const rodGrad = ctx.createLinearGradient(cx, cy, bx, by);
+    rodGrad.addColorStop(0, "rgba(150,170,210,0.85)");
+    rodGrad.addColorStop(1, "rgba(110,200,255,0.95)");
+    ctx.strokeStyle = rodGrad;
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+    ctx.fillStyle = "#2c3446";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(130,210,255,0.6)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const glow = ctx.createRadialGradient(bx, by, 2, bx, by, 56);
+    glow.addColorStop(0, "rgba(120,210,255,0.55)");
+    glow.addColorStop(0.4, "rgba(80,160,255,0.18)");
+    glow.addColorStop(1, "rgba(80,160,255,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(bx, by, 56, 0, Math.PI * 2);
+    ctx.fill();
+
+    const core = ctx.createRadialGradient(bx - 5, by - 6, 2, bx, by, 18);
+    core.addColorStop(0, "#dff4ff");
+    core.addColorStop(0.45, "#7cc9ff");
+    core.addColorStop(1, "#2f6fd8");
+    ctx.shadowColor = "rgba(110,200,255,0.9)";
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(bx, by, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    const deg = (theta * 180) / Math.PI;
+    const period = 2 * Math.PI * Math.sqrt(L / (G * PX_PER_M));
+    const compact = W < 620;
+
+    ctx.font = "600 " + (compact ? 13 : 15) + "px 'Segoe UI', 'Microsoft YaHei', sans-serif";
+    ctx.fillStyle = "rgba(200,215,240,0.92)";
+    ctx.fillText("单摆仿真 · Simple Pendulum", 24, 40);
+
+    ctx.font = "400 " + (compact ? 11 : 13) + "px 'Segoe UI', 'Microsoft YaHei', sans-serif";
+    ctx.fillStyle = "rgba(140,155,185,0.9)";
+    if (compact) {
+      ctx.fillText("L = " + L + " px · g = " + G.toFixed(1) + " · θ = " + (deg >= 0 ? "+" : "") + deg.toFixed(1) + "° · T ≈ " + period.toFixed(2) + " s", 24, 64);
+    } else {
+      ctx.fillText("摆长 L = " + L + " px     重力 g = " + G.toFixed(1) + " m/s²     初始摆角 45°", 24, 64);
+      ctx.fillText("实时摆角 θ = " + (deg >= 0 ? "+" : "") + deg.toFixed(1) + "°     理论周期 T ≈ " + period.toFixed(2) + " s", 24, 86);
+    }
+
+    ctx.textAlign = "right";
+    ctx.fillText("南昌大学 · 物理学 · 臧梓贺 · 5715126035", W - 24, 40);
+    ctx.fillText("θ″ = −(g/L)·sinθ − βθ′ · 半隐式欧拉", W - 24, 64);
+    ctx.textAlign = "left";
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(120,135,165,0.55)";
+    ctx.fillText(compact ? "原生 Canvas 2D · 单文件零依赖" : "requestAnimationFrame 驱动 · 原生 Canvas 2D 绘制 · 单文件零依赖", W / 2, H - 22);
+    ctx.textAlign = "left";
+
+    ctx.restore();
+  }
+
+  function clamp(v, lo, hi) {
+    return Math.min(hi, Math.max(lo, v));
+  }
+
+  function saveParams() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ L: L, G: G, damping: damping }));
+    } catch (e) {
+      return;
+    }
+  }
+
+  function loadParams() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (typeof p.L === "number" && isFinite(p.L)) L = clamp(p.L, 100, 350);
+      if (typeof p.G === "number" && isFinite(p.G)) G = clamp(p.G, 1, 25);
+      if (typeof p.damping === "number" && isFinite(p.damping)) damping = clamp(p.damping, 0, 0.01);
+    } catch (e) {
+      return;
+    }
+  }
+
+  function syncParamUI() {
+    lenRange.value = String(L);
+    lenVal.textContent = L + " px";
+    gravRange.value = String(G);
+    gravVal.textContent = G.toFixed(1) + " m/s²";
+    dampRange.value = String(damping);
+    dampVal.textContent = damping.toFixed(3);
+  }
+
+  function detectPreset(g) {
+    for (const key in PRESETS) {
+      if (Math.abs(PRESETS[key].G - g) < 0.05) return key;
+    }
+    return null;
+  }
+
+  function setActivePreset(key) {
+    presetButtons.forEach((b) => {
+      b.classList.toggle("active", b.dataset.preset === key);
+    });
+    presetHint.textContent = key ? PRESET_NAMES[key] : "自定义";
+  }
+
+  function setPreset(key) {
+    const preset = PRESETS[key];
+    if (!preset) return;
+    if (Math.abs(G - preset.G) < 0.001) {
+      G = preset.G;
+      syncParamUI();
+      setActivePreset(key);
+      saveParams();
+      return;
+    }
+    gTween = { from: G, to: preset.G, t: 0, dur: 0.8 };
+    setActivePreset(key);
+  }
+
+  function updateGTween(dt) {
+    if (!gTween) return;
+    gTween.t += dt;
+    const k = Math.min(1, gTween.t / gTween.dur);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    G = gTween.from + (gTween.to - gTween.from) * e;
+    gravRange.value = String(G);
+    gravVal.textContent = G.toFixed(1) + " m/s²";
+    if (k >= 1) {
+      G = gTween.to;
+      gTween = null;
+      gravRange.value = String(G);
+      gravVal.textContent = G.toFixed(1) + " m/s²";
+      saveParams();
+    }
+  }
+
+  function resetPendulum() {
+    theta = THETA0;
+    omega = 0;
+    trail.length = 0;
+    last = 0;
+  }
+
+  function bindControls() {
+    lenRange.addEventListener("input", () => {
+      L = Number(lenRange.value);
+      lenVal.textContent = L + " px";
+      trail.length = 0;
+      saveParams();
+    });
+    gravRange.addEventListener("input", () => {
+      gTween = null;
+      G = Number(gravRange.value);
+      gravVal.textContent = G.toFixed(1) + " m/s²";
+      setActivePreset(detectPreset(G));
+      saveParams();
+    });
+    dampRange.addEventListener("input", () => {
+      damping = Number(dampRange.value);
+      dampVal.textContent = damping.toFixed(3);
+      saveParams();
+    });
+    presetBar.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".capsule");
+      if (btn) setPreset(btn.dataset.preset);
+    });
+    resetBtn.addEventListener("click", resetPendulum);
+  }
+
+  function init() {
+    loadParams();
+    resize();
+    syncParamUI();
+    setActivePreset(detectPreset(G));
+    bindControls();
+    window.addEventListener("resize", resize);
+    requestAnimationFrame(loop);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
