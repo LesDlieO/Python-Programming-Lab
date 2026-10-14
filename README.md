@@ -104,7 +104,7 @@ Python-Programming-Lab/
 2. 克隆本仓库：
 
    ```bash
-   git clone <你的仓库地址>
+   git clone https://github.com/LesDlieO/Python-Programming-Lab.git
    cd Python-Programming-Lab
    ```
 
